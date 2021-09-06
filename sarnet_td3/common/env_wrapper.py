@@ -78,6 +78,9 @@ class GymWrapper(object):
         obs = self._flatten_obs(obs)
         return obs, r, done, info
 
+    def seed(self, the_seed):
+        self.env.seed()
+
     def reward_terminal(self):
         if hasattr(self.env, 'reward_terminal'):
             return self.env.reward_terminal()
