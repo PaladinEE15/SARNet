@@ -1,7 +1,8 @@
 #Code Reused from https://github.com/stanfordnlp/mac-network/
 from __future__ import division
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 from experiments.config_args import parse_args
 from sarnet_td3.common.config_ops import config
