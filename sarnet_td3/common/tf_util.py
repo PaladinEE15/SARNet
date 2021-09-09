@@ -84,9 +84,9 @@ class BatchInput(PlacholderTfInput):
             name of the underlying placeholder
         """
         if traj:
-            super().__init__(tf.compat.v1.placeholder(dtype, [None] + [None] + list(shape), name=name))
+            super().__init__(tf.placeholder(dtype, [None] + [None] + list(shape), name=name))
         else:
-            super().__init__(tf.compat.v1.placeholder(dtype, [None] + list(shape), name=name))
+            super().__init__(tf.placeholder(dtype, [None] + list(shape), name=name))
 
 
 class Uint8Input(PlacholderTfInput):
@@ -165,7 +165,7 @@ def minimize_and_clip(optimizer, objective, var_list, clip_val=10):
 def get_session(sess=None):
     """Returns recently made Tensorflow session"""
     if sess is None:
-        return tf.compat.v1.get_default_session()
+        return tf.get_default_session()
     else:
         return sess
 
@@ -183,13 +183,13 @@ def make_interactive_session(args):
     # tf_config = tf.ConfigProto(
     #     inter_op_parallelism_threads=num_cpu,
     #     intra_op_parallelism_threads=num_cpu)
-    tf_config = tf.compat.v1.ConfigProto(
+    tf_config = tf.ConfigProto(
             allow_soft_placement=True,
             log_device_placement=False,
             # graph_options=tf.GraphOptions(optimizer_options=tf.OptimizerOptions(opt_level=tf.OptimizerOptions.L0)),
-            gpu_options=tf.compat.v1.GPUOptions(visible_device_list=args.gpu_device, allow_growth=True),
-                    graph_options=tf.compat.v1.GraphOptions(optimizer_options=tf.compat.v1.OptimizerOptions(opt_level=tf.compat.v1.OptimizerOptions.L0)))
-    return tf.compat.v1.InteractiveSession(config=tf_config)
+            gpu_options=tf.GPUOptions(visible_device_list=args.gpu_device, allow_growth=True),
+                    graph_options=tf.GraphOptions(optimizer_options=tf.OptimizerOptions(opt_level=tf.OptimizerOptions.L0)))
+    return tf.InteractiveSession(config=tf_config)
 
 def single_threaded_session():
     """Returns a session which will only use a single CPU"""
@@ -204,8 +204,8 @@ ALREADY_INITIALIZED = set()
 
 def initialize():
     """Initialize all the uninitialized variables in the global scope."""
-    new_variables = set(tf.compat.v1.global_variables()) - ALREADY_INITIALIZED
-    get_session().run(tf.compat.v1.variables_initializer(new_variables))
+    new_variables = set(tf.global_variables()) - ALREADY_INITIALIZED
+    get_session().run(tf.variables_initializer(new_variables))
     ALREADY_INITIALIZED.update(new_variables)
 
 
@@ -231,15 +231,15 @@ def scope_vars(scope, trainable_only=False):
     vars: [tf.Variable]
         list of variables in `scope`.
     """
-    return tf.compat.v1.get_collection(
-        tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES if trainable_only else tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+    return tf.get_collection(
+        tf.GraphKeys.TRAINABLE_VARIABLES if trainable_only else tf.GraphKeys.GLOBAL_VARIABLES,
         scope=scope if isinstance(scope, str) else scope.name
     )
 
 
 def scope_name():
     """Returns the name of current scope as a string, e.g. deepq/q_func"""
-    return tf.compat.v1.get_variable_scope().name
+    return tf.get_variable_scope().name
 
 
 def absolute_scope_name(relative_scope_name):
@@ -254,7 +254,7 @@ def absolute_scope_name(relative_scope_name):
 def load_state(fname, saver=None):
     """Load all the variables to the current session from the location <fname>"""
     if saver is None:
-        saver = tf.compat.v1.train.Saver()
+        saver = tf.train.Saver()
     saver.restore(get_session(), fname)
     return saver
 

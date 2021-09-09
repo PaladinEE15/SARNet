@@ -2,7 +2,7 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
 
-class MiLSTMCell(tf.compat.v1.nn.rnn_cell.RNNCell):
+class MiLSTMCell(tf.nn.rnn_cell.RNNCell):
     def __init__(self, num_units, forget_bias=1.0, input_size=None,
                  state_is_tuple=True, activation=tf.tanh, reuse=None):
         self.numUnits = num_units

@@ -1,6 +1,6 @@
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-import tensorflow_addons.layers as layers
+import tf_slim.layers as layers
 import numpy as np
 
 from sarnet_td3.models.SARNet_comm import RRLCell
@@ -19,21 +19,13 @@ class CommActorNetworkVPG():
 
         self.attn_scale = np.sqrt(self.args.query_units)
 
-    def _gru(self, reuse, proj=False, num_outputs=None):
+    def _gru(self, reuse, num_outputs=None):
         # return tf.contrib.cudnn_rnn.CudnnCompatibleGRUCell(num_units=self.args.gru_units)
         # return tf.contrib.cudnn_rnn.CudnnGRU(num_layers=1, num_units=args.gru_units)
-        if proj:
-            gru_cell = tf.contrib.rnn.GRUCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
-            return tf.contrib.rnn.OutputProjectionWrapper(gru_cell, num_outputs, reuse=reuse)
-        else:
-            return tf.contrib.rnn.GRUCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
+        return tf.nn.rnn_cell.GRUCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
 
-    def _lstm(self, reuse, proj=False, num_outputs=None):
-        if proj:
-            lstm_cell = tf.contrib.rnn.LSTMCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
-            return tf.contrib.rnn.OutputProjectionWrapper(lstm_cell, num_outputs, reuse=reuse)
-        else:
-            return tf.contrib.rnn.LSTMCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
+    def _lstm(self, reuse, num_outputs=None):
+        return tf.nn.rnn_cell.LSTMCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
 
     def _sarnet_comm(self, reuse):
         return RRLCell(self.is_train, self.args, reuse=reuse)
@@ -46,7 +38,7 @@ class CommActorNetworkVPG():
     Obs dim - [batch, time, obs_dim]
     """
     def obs_encoder(self, x, state, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             out = x
             if self.args.recurrent:
                 if self.args.encoder_model == "GRU":
@@ -62,22 +54,22 @@ class CommActorNetworkVPG():
             return out, state
 
     def action_enc(self, input, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             out = layers.fully_connected(input, num_outputs=self.args.action_units, activation_fn=tf.nn.relu, scope="actproj0", reuse=reuse)
             return out
 
     def action_pred(self, input, num_outputs, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             out = layers.fully_connected(input, num_outputs=num_outputs, activation_fn=None, scope="actproj1", reuse=reuse)
             return out
 
     def value_pred(self, input, num_outputs, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             out = layers.fully_connected(input, num_outputs=num_outputs, activation_fn=None, scope="valueproj", reuse=reuse)
             return out
 
     def get_query_vec(self, x, scope, reuse, comm_type="sarnet"):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             if self.args.nheads > 1 and not comm_type == "tarmac":
                 query_out = []
                 for i in range(self.args.nheads):
@@ -88,7 +80,7 @@ class CommActorNetworkVPG():
             return query_out
 
     def get_key_val_vec(self, x, scope, reuse, comm_type="sarnet"):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             x_val = x
             # Input [batch, dim]
             if self.args.nheads > 1 and not comm_type == "tarmac":
@@ -104,25 +96,25 @@ class CommActorNetworkVPG():
         return key_out, value_out
 
     def compute_attn_dotprod(self, query, key_n, value_n, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             query = tf.expand_dims(query, axis=1)
             att_smry = query * key_n
             att_smry = ops.inter2logits(att_smry, self.args.query_units, sumMod="SUM")  # Get dot product
             att_smry = tf.nn.softmax(att_smry) / self.attn_scale  # (batch_size, #Agents)
             # Now do interaction with the value (batch_size, #Agents) * (batch_size, #Agents, value_dim)
             message = tf.einsum('bn,bnd->bd', att_smry, value_n)
-            _obs_act_in = tf.contrib.layers.batch_norm(message, decay=self.args.bnDecay, center=self.args.bnCenter,
+            _obs_act_in = layers.batch_norm(message, decay=self.args.bnDecay, center=self.args.bnCenter,
                                                        scale=self.args.bnScale, is_training=self.is_train,
                                                        updates_collections=None, scope="batch_norm_obs", reuse=reuse)
             return message, att_smry
 
     def commnet_com(self, x_n, n, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             message = tf.add_n(x_n) / n
             return message
 
     def ic3_gating_com(self, state_t1, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             _gate = layers.fully_connected(state_t1, num_outputs=1, activation_fn=tf.nn.softmax, scope="gate_encoder", reuse=reuse)
             _comm_gate_out = tf.multiply(state_t1, _gate)
 
@@ -134,7 +126,7 @@ class CommActorNetworkVPG():
     # GRU State 2; [3*N ~ 4*N-1] - Message_tp}
 
     def sarnet(self, x_n, num_outputs, p_index, n, n_start, n_end, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # Gather inputs fed for the graph
             # Required as a list of [#agents, [time, batch, dim]]
             obs_n_in = [x_n[i] for i in range(n_start, n_end)]
@@ -167,7 +159,7 @@ class CommActorNetworkVPG():
                 if self.args.SARplusIC3:
                     saric3_comm_n = []
                     for i in range(n_start, n_end):
-                        _gating_comm = self.ic3_gating_com(h_n_t[i], scope="sarplusic3_gate", reuse=tf.compat.v1.AUTO_REUSE)
+                        _gating_comm = self.ic3_gating_com(h_n_t[i], scope="sarplusic3_gate", reuse=tf.AUTO_REUSE)
                         saric3_comm_n.append(_gating_comm)
 
                 # Weight sharing between the encoder layers of all agents
@@ -179,7 +171,7 @@ class CommActorNetworkVPG():
                     if self.args.pre_encoder:
                         obs_enc_in_i = layers.fully_connected(obs_enc_in_i, num_outputs=self.args.gru_units,
                                                               activation_fn=tf.nn.relu, scope="sarnet_pre_enc",
-                                                              reuse=tf.compat.v1.AUTO_REUSE)
+                                                              reuse=tf.AUTO_REUSE)
                     """Computation from observation state, fed directly step-wise"""
                     if self.args.FeedOldMemoryToObsEnc:
                         obs_enc_in_i = tf.concat([msg_n_t[i], obs_enc_in_i], axis=-1)
@@ -188,17 +180,17 @@ class CommActorNetworkVPG():
                         # Get all gating actions for all agents except "i" to compute mean
                         saric3_comm_j = saric3_comm_n[:i] + saric3_comm_n[i + 1:]
                         # Compute messages mean of pre-scaled hidden states
-                        ic3_msg_n_t = self.commnet_com(saric3_comm_j, n_end - n_start - 1, scope="sarplusic3_mean", reuse=tf.compat.v1.AUTO_REUSE)
+                        ic3_msg_n_t = self.commnet_com(saric3_comm_j, n_end - n_start - 1, scope="sarplusic3_mean", reuse=tf.AUTO_REUSE)
                         obs_enc_in_i = tf.concat([obs_enc_in_i, ic3_msg_n_t], axis=-1)
 
                     """Internal Computation from loop inputs - hidden_state"""
                     # Encode observation with a recurrent model
                     if self.args.encoder_model == "LSTM":
-                        obs_enc_state_i = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
+                        obs_enc_state_i = tf.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
                     else:  # GRU
                         obs_enc_state_i = h_n_t[i]
 
-                    _enc_out, _enc_state = self.obs_encoder(obs_enc_in_i, obs_enc_state_i, scope="sarnet_enc", reuse=tf.compat.v1.AUTO_REUSE)
+                    _enc_out, _enc_state = self.obs_encoder(obs_enc_in_i, obs_enc_state_i, scope="sarnet_enc", reuse=tf.AUTO_REUSE)
 
                     """
                     Update the encoder states for each agent for the next time-step
@@ -216,14 +208,14 @@ class CommActorNetworkVPG():
                     if i is p_index:
                         _enc_out_p_index = _enc_out
 
-                    _key_proj, _value_proj = self.get_key_val_vec(_enc_out, scope="sarnet_KV_Projs", reuse=tf.compat.v1.AUTO_REUSE)
+                    _key_proj, _value_proj = self.get_key_val_vec(_enc_out, scope="sarnet_KV_Projs", reuse=tf.AUTO_REUSE)
                     _key_enc.append(_key_proj)
                     _value_enc.append(_value_proj)
 
-                _query_enc = self.get_query_vec(_enc_out_p_index, scope="sarnet_QProj", reuse=tf.compat.v1.AUTO_REUSE)
+                _query_enc = self.get_query_vec(_enc_out_p_index, scope="sarnet_QProj", reuse=tf.AUTO_REUSE)
 
                 # Reasoning Cell
-                self.sarnet_cell = self._sarnet_comm(reuse=tf.compat.v1.AUTO_REUSE)
+                self.sarnet_cell = self._sarnet_comm(reuse=tf.AUTO_REUSE)
                 sarnet_input = (_query_enc, _key_enc, _value_enc)
 
                 attn_pidx, msg_n_t[p_index - n_start] = self.sarnet_cell(sarnet_input, msg_n_t[p_index - n_start])
@@ -231,19 +223,19 @@ class CommActorNetworkVPG():
                 _obs_act_in = _enc_out_p_index
 
                 if self.args.bNorm_state:
-                    _obs_act_in = tf.contrib.layers.batch_norm(_obs_act_in, decay=self.args.bnDecay,
+                    _obs_act_in = layers.batch_norm(_obs_act_in, decay=self.args.bnDecay,
                                                                center=self.args.bnCenter,
                                                                scale=self.args.bnScale, is_training=self.is_train,
                                                                updates_collections=None, scope="batch_norm_obs",
-                                                               reuse=tf.compat.v1.AUTO_REUSE)
+                                                               reuse=tf.AUTO_REUSE)
 
                 act_in_pred = tf.concat([_obs_act_in, msg_n_t[p_index - n_start]], axis=-1)
                 if self.args.TwoLayerEncodeSarnet:
-                    act_in_pred = self.action_enc(act_in_pred, scope="sarnet_act_enc", reuse=tf.compat.v1.AUTO_REUSE)
-                action = self.action_pred(act_in_pred, num_outputs, scope="sarnet_act", reuse=tf.compat.v1.AUTO_REUSE)
+                    act_in_pred = self.action_enc(act_in_pred, scope="sarnet_act_enc", reuse=tf.AUTO_REUSE)
+                action = self.action_pred(act_in_pred, num_outputs, scope="sarnet_act", reuse=tf.AUTO_REUSE)
                 outputs_ = outputs_.write(stp, action)
 
-                value = self.value_pred(act_in_pred, 1, scope="sarnet_value", reuse=tf.compat.v1.AUTO_REUSE)
+                value = self.value_pred(act_in_pred, 1, scope="sarnet_value", reuse=tf.AUTO_REUSE)
                 outputs_val = outputs_val.write(stp, value)
 
                 return stp + 1, h_n_t, c_n_t, msg_n_t, outputs_, outputs_val
@@ -259,7 +251,7 @@ class CommActorNetworkVPG():
         return action_traj, (h_n_out[p_index - n_start], c_n_out[p_index - n_start]), msg_pidx_out, attn_pidx, out_val
 
     def tarmac(self, x_n, num_outputs, p_index, n, n_start, n_end, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # Gather inputs fed for the graph
             # Required as a list of [#agents, [time, batch, dim]]
             obs_n_in = [x_n[i] for i in range(n_start, n_end)]
@@ -290,17 +282,17 @@ class CommActorNetworkVPG():
                     # Encode observation
                     obs_enc_in_i = obs_n_in[i][stp]
                     if self.args.pre_encoder:
-                        obs_enc_in_i = layers.fully_connected(obs_enc_in_i, num_outputs=self.args.gru_units, activation_fn=tf.nn.relu, scope="tarmac_pre_enc", reuse=tf.compat.v1.AUTO_REUSE)
+                        obs_enc_in_i = layers.fully_connected(obs_enc_in_i, num_outputs=self.args.gru_units, activation_fn=tf.nn.relu, scope="tarmac_pre_enc", reuse=tf.AUTO_REUSE)
 
                     obs_enc_in_i = tf.concat([obs_enc_in_i, msg_n_t[i]], axis=-1)  # Concat message and observation encoding
 
                     # Encode observation with a recurrent model
                     if self.args.encoder_model == "LSTM":
-                        obs_enc_state_i = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
+                        obs_enc_state_i = tf.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
                     else:  # GRU
                         obs_enc_state_i = h_n_t[i]
 
-                    _enc_out, _enc_state = self.obs_encoder(obs_enc_in_i, obs_enc_state_i, scope="tarmac_enc", reuse=tf.compat.v1.AUTO_REUSE)
+                    _enc_out, _enc_state = self.obs_encoder(obs_enc_in_i, obs_enc_state_i, scope="tarmac_enc", reuse=tf.AUTO_REUSE)
                     obs_enc_out_n.append(_enc_out)
 
                     if self.args.encoder_model == "LSTM":
@@ -309,12 +301,12 @@ class CommActorNetworkVPG():
                         h_n_t[i] = _enc_state
 
                     # Generate Keys and Values from all agents
-                    _key_proj, _value_proj = self.get_key_val_vec(_enc_out, scope="tarmac_keyval", reuse=tf.compat.v1.AUTO_REUSE, comm_type = "tarmac")
+                    _key_proj, _value_proj = self.get_key_val_vec(_enc_out, scope="tarmac_keyval", reuse=tf.AUTO_REUSE, comm_type = "tarmac")
                     _key_enc.append(_key_proj)
                     _value_enc.append(_value_proj)
 
                     # Generate Query only from action agent
-                    _query_proj = self.get_query_vec(_enc_out, scope="tarmac_query", reuse=tf.compat.v1.AUTO_REUSE, comm_type="tarmac")
+                    _query_proj = self.get_query_vec(_enc_out, scope="tarmac_query", reuse=tf.AUTO_REUSE, comm_type="tarmac")
                     _query_enc.append(_query_proj)
 
                 # Stack all keys and values of all agents to a single tensor
@@ -324,10 +316,10 @@ class CommActorNetworkVPG():
                 # Updates messages for every agent for the next timestep
                 for i in range(n_start, n_end):
                     # Generate attention and message, attention only used for benchmarking results
-                    msg_n_t[i], _ = self.compute_attn_dotprod(_query_enc[i], _key_enc, _value_enc, scope="tarmac_attn", reuse=tf.compat.v1.AUTO_REUSE)
+                    msg_n_t[i], _ = self.compute_attn_dotprod(_query_enc[i], _key_enc, _value_enc, scope="tarmac_attn", reuse=tf.AUTO_REUSE)
 
-                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.compat.v1.AUTO_REUSE)
-                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="ic3net_value", reuse=tf.compat.v1.AUTO_REUSE)
+                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.AUTO_REUSE)
+                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="ic3net_value", reuse=tf.AUTO_REUSE)
 
                 outputs_ = outputs_.write(stp, action)
                 outputs_val = outputs_val.write(stp, value)
@@ -345,7 +337,7 @@ class CommActorNetworkVPG():
             return action_traj, (h_n_out[p_index - n_start], c_n_out[p_index - n_start]), msg_pidx_out, msg_pidx_out, out_val
 
     def ic3net(self, x_n, num_outputs, p_index, n, n_start, n_end, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # Gather inputs fed for the graph
             # Required as a list of [#agents, [time, batch, dim]]
             obs_n_in = [x_n[i] for i in range(n_start, n_end)]
@@ -371,31 +363,31 @@ class CommActorNetworkVPG():
                 for i in range(n_start, n_end):
                     # Weight sharing between the encoder layers of all agents
                     #  Communication: Gating decision is made from the hidden layer at time-step 't-1', i.e. x_n[i+n],
-                    _gating_comm = self.ic3_gating_com(h_n_t[i], scope="ic3_gate", reuse=tf.compat.v1.AUTO_REUSE)
+                    _gating_comm = self.ic3_gating_com(h_n_t[i], scope="ic3_gate", reuse=tf.AUTO_REUSE)
                     _gating_comm_n.append(_gating_comm)
 
                 for i in range(n_start, n_end):
                     # Average all scaled hidden states from the gating mechanism, received from the other agents
-                    message_t1_n.append(self.commnet_com(_gating_comm_n[:i] + _gating_comm_n[i+1:], n_end - n_start - 1, scope="mean_ic3net", reuse=tf.compat.v1.AUTO_REUSE))
+                    message_t1_n.append(self.commnet_com(_gating_comm_n[:i] + _gating_comm_n[i+1:], n_end - n_start - 1, scope="mean_ic3net", reuse=tf.AUTO_REUSE))
 
                     # Pre - encode observation
                     obs_enc_in_i = obs_n_in[i][stp]
                     if self.args.pre_encoder:
                         obs_enc_in_i = layers.fully_connected(obs_enc_in_i, num_outputs=self.args.gru_units,
                                                               activation_fn=tf.nn.relu, scope="ic3_pre_enc",
-                                                              reuse=tf.compat.v1.AUTO_REUSE)
+                                                              reuse=tf.AUTO_REUSE)
 
                     obs_enc_in_i = tf.concat([obs_enc_in_i, message_t1_n[i]], axis=-1)
 
                     # Encode observation with a recurrent model
                     if self.args.encoder_model == "LSTM":
-                        obs_enc_state_i = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
+                        obs_enc_state_i = tf.nn.rnn_cell.LSTMStateTuple(c_n_t[i], h_n_t[i])
                     else:  # GRU
                         obs_enc_state_i = h_n_t[i]
 
                     _enc_out_i, _enc_state_i = self.obs_encoder(obs_enc_in_i, obs_enc_state_i,
                                                                             scope="ic3net_gru_enc",
-                                                                            reuse=tf.compat.v1.AUTO_REUSE)
+                                                                            reuse=tf.AUTO_REUSE)
                     obs_enc_out_n.append(_enc_out_i)
 
                     if self.args.encoder_model == "LSTM":
@@ -403,10 +395,10 @@ class CommActorNetworkVPG():
                     else:
                         h_n_t[i] = _enc_state_i
 
-                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.compat.v1.AUTO_REUSE)
+                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.AUTO_REUSE)
                 outputs_ = outputs_.write(stp, action)
 
-                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="ic3net_value", reuse=tf.compat.v1.AUTO_REUSE)
+                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="ic3net_value", reuse=tf.AUTO_REUSE)
                 outputs_val = outputs_val.write(stp, value)
 
                 return stp + 1, h_n_t, c_n_t, msg_n_t, outputs_, outputs_val
@@ -422,7 +414,7 @@ class CommActorNetworkVPG():
             return action_traj, (h_n_out[p_index - n_start], c_n_out[p_index - n_start]), msg_pidx_out, msg_pidx_out, out_val
 
     def commnet(self, x_n, num_outputs, p_index, n, n_start, n_end, scope, reuse):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # Gather inputs fed for the graph
             # Required as a list of [#agents, [time, batch, dim]]
             obs_n_in = [x_n[i] for i in range(n_start, n_end)]
@@ -445,13 +437,13 @@ class CommActorNetworkVPG():
                 # Collect all messages and get a mean of it
                 obs_enc_out_n = []
                 for i in range(n_start, n_end):
-                    message_t1_i = self.commnet_com(h_n_t[:i] + h_n_t[i+1:], n_end - n_start - 1, scope="mean_commnet", reuse=tf.compat.v1.AUTO_REUSE)
+                    message_t1_i = self.commnet_com(h_n_t[:i] + h_n_t[i+1:], n_end - n_start - 1, scope="mean_commnet", reuse=tf.AUTO_REUSE)
 
                     obs_enc_in_i = obs_n_in[i][stp]
                     if self.args.pre_encoder:
                         obs_enc_in_i = layers.fully_connected(obs_enc_in_i, num_outputs=self.args.gru_units,
                                                                  activation_fn=tf.nn.relu, scope="comm_pre_enc",
-                                                                 reuse=tf.compat.v1.AUTO_REUSE)
+                                                                 reuse=tf.AUTO_REUSE)
                     obs_enc_in_pidx = tf.concat([obs_enc_in_i, message_t1_i], axis=-1)
 
                     # Encode observation with a recurrent model
@@ -460,7 +452,7 @@ class CommActorNetworkVPG():
                     else:  # GRU
                         obs_enc_state_i = h_n_t[i]
 
-                    enc_out_i, enc_state_i = self.obs_encoder(obs_enc_in_pidx, obs_enc_state_i, scope="commnet_enc", reuse=tf.compat.v1.AUTO_REUSE)
+                    enc_out_i, enc_state_i = self.obs_encoder(obs_enc_in_pidx, obs_enc_state_i, scope="commnet_enc", reuse=tf.AUTO_REUSE)
                     if self.args.encoder_model == "LSTM":
                         c_n_t[i], h_n_t[i] = enc_state_i
                     else:
@@ -468,10 +460,10 @@ class CommActorNetworkVPG():
 
                     obs_enc_out_n.append(enc_out_i)
 
-                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.compat.v1.AUTO_REUSE)
+                action = self.action_pred(obs_enc_out_n[p_index - n_start], num_outputs, scope="tarmac_act", reuse=tf.AUTO_REUSE)
                 outputs_ = outputs_.write(stp, action)
 
-                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="commnet_value", reuse=tf.compat.v1.AUTO_REUSE)
+                value = self.value_pred(obs_enc_out_n[p_index - n_start], 1, scope="commnet_value", reuse=tf.AUTO_REUSE)
                 outputs_val = outputs_val.write(stp, value)
 
                 return stp + 1, h_n_t, c_n_t, msg_n_t, outputs_, outputs_val

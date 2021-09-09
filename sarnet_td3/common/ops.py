@@ -23,11 +23,11 @@ Uses random_normal initialization if 1d, otherwise uses xavier.
 
 
 def getWeight(shape, name=""):
-    with tf.compat.v1.variable_scope("weights"):
+    with tf.variable_scope("weights"):
         initializer = tf.contrib.layers.xavier_initializer()
         # if len(shape) == 1: # good?
         #     initializer = tf.random_normal_initializer()
-        W = tf.compat.v1.get_variable("weight" + name, shape=shape, initializer=initializer)
+        W = tf.get_variable("weight" + name, shape=shape, initializer=initializer)
     return W
 
 
@@ -49,9 +49,9 @@ Initializes a bias variable given a shape and a name.
 
 
 def getBias(shape, name=""):
-    with tf.compat.v1.variable_scope("biases"):
+    with tf.variable_scope("biases"):
         initializer = tf.zeros_initializer()
-        b = tf.compat.v1.get_variable("bias" + name, shape=shape, initializer=initializer)
+        b = tf.get_variable("bias" + name, shape=shape, initializer=initializer)
     return b
 
 
@@ -137,7 +137,7 @@ sumMod = ["LIN", "SUM"]
 
 
 def inter2logits(interactions, dim, sumMod="LIN", dropout=1.0, name="", reuse=None):
-    with tf.compat.v1.variable_scope("inter2logits" + name, reuse=reuse):
+    with tf.variable_scope("inter2logits" + name, reuse=reuse):
         if sumMod == "SUM":
             logits = tf.reduce_sum(interactions, axis=-1)
         else:  # "LIN"
@@ -194,7 +194,7 @@ Performs a variant of ReLU based on config.relu
 
 def relu(inp):
     if arglist.relu == "PRM":
-        with tf.compat.v1.variable_scope(None, default_name="prelu"):
+        with tf.variable_scope(None, default_name="prelu"):
             alpha = tf.get_variable("alpha", shape=inp.get_shape()[-1],
                                     initializer=tf.constant_initializer(0.25))
             pos = tf.nn.relu(inp)
@@ -351,7 +351,7 @@ def linear(inp, inDim, outDim, dropout=1.0,
            batchNorm=None, addBias=True, bias=0.0,
            act="NON", actLayer=True, actDropout=1.0,
            retVars=False, name="", reuse=None):
-    with tf.compat.v1.variable_scope("linearLayer" + name, reuse=reuse):
+    with tf.variable_scope("linearLayer" + name, reuse=reuse):
         W = getWeight((inDim, outDim) if outDim > 1 else (inDim,))
         b = getBias((outDim,) if outDim > 1 else ()) + bias
 

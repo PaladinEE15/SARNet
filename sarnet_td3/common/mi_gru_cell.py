@@ -2,7 +2,7 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
 
-class MiGRUCell(tf.compat.v1.nn.rnn_cell.RNNCell):
+class MiGRUCell(tf.nn.rnn_cell.RNNCell):
     def __init__(self, num_units, input_size=None, activation=tf.tanh, reuse=None):
         self.numUnits = num_units
         self.activation = activation

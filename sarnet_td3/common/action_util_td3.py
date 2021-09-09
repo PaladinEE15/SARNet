@@ -275,7 +275,7 @@ class ActionOPTD3(object):
     def create_tensorboard(self):
         """Setup tensorboard"""
         if not (self.args.benchmark or self.args.display):
-            self.writer = tf.compat.v1.summary.FileWriter(self.tboard_dir, U.get_session().graph)
+            self.writer = tf.summary.FileWriter(self.tboard_dir, U.get_session().graph)
             self.writer.flush()
             self.summary_ops, self.summary_vars = build_summaries(self.num_agents, self.args)
 

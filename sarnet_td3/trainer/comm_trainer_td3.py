@@ -58,9 +58,9 @@ def create_placeholder_td3(obs_shape_n, act_space_n, num_agents, args):
         if args.td3:
             critic_ct += 1
         for i in range(critic_ct):
-            target_ph.append(tf.compat.v1.placeholder(tf.float32, [None, None], name="target" + str(critic_ct)))
+            target_ph.append(tf.placeholder(tf.float32, [None, None], name="target" + str(critic_ct)))
 
-        importance_in_ph = tf.compat.v1.placeholder(tf.float32, shape=[None])
+        importance_in_ph = tf.placeholder(tf.float32, shape=[None])
 
         return obs_ph_n, gru1_ph_n, gru2_ph_n, memory_ph_n, act_ph_n, act_space_n, target_ph, q_gru_ph_n, importance_in_ph
 
@@ -83,9 +83,9 @@ class CommAgentTrainerTD3(MAgentTrainer):
             self.step_update_time = 5
 
         if self.args.optimizer == "RMSProp":
-            self.optimizer = tf.compat.v1.train.RMSPropOptimizer(learning_rate=self.args.actor_lr, decay=0.97, epsilon=1e-6)
+            self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.args.actor_lr, decay=0.97, epsilon=1e-6)
         else:
-            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.args.actor_lr)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.args.actor_lr)
 
         # Setup weight sharing for first initialization of adv/good policy
         if not(self.p_index == 0 or self.p_index == self.num_adv): self.reuse = True
@@ -210,7 +210,7 @@ class CommAgentTrainerTD3(MAgentTrainer):
 
     def _pMA_train(self, make_obs_ph_n, make_memory_ph_n, make_q_gru_ph_n, make_h_ph_n, make_c_ph_n, make_act_ph_n, action_space_n, importance_in, p_func, q_func, optimizer,
                    grad_norm_clipping=None, scope="agent", reuse=None):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # create distributions
             act_pdtype_n = [make_pdtype(act_space, self.args.env_type) for act_space in action_space_n]
 
@@ -274,7 +274,7 @@ class CommAgentTrainerTD3(MAgentTrainer):
 
     def _qMA_train(self, critic_index, make_obs_ph_n, make_q_gru_ph_n, make_act_ph_n, make_target_ph, importance_in, q_func, optimizer, grad_norm_clipping=None,
                   scope="trainer", reuse=None):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # set up placeholders
             obs_ph_n = make_obs_ph_n
             q_gru_ph_n = make_q_gru_ph_n

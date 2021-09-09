@@ -477,7 +477,7 @@ class MultiTrainVPG(threading.Thread):
 
 def get_gputhreads(trainers, args, buffer_op, num_env, num_agents, num_adv):
     threads = []
-    sess = tf.compat.v1.get_default_session()
+    sess = tf.get_default_session()
     for t in range(args.num_gpu_threads):
         input_q = queue.Queue()
         output_q = queue.Queue()

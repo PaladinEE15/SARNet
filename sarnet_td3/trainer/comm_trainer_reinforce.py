@@ -44,10 +44,10 @@ def create_placeholder_vpg(obs_shape_n, act_space_n, num_agents, args):
             h_ph_n.append(U.BatchInput((args.gru_units,), name="gru_ph1" + str(i)).get())
             c_ph_n.append(U.BatchInput((args.gru_units,), name="gru_ph2" + str(i)).get())
             memory_ph_n.append(U.BatchInput((args.value_units,), name="memory_ph" + str(i)).get())
-            return_ph_n.append(tf.compat.v1.placeholder(tf.float32, [None, None], name="returns" + str(i)))
+            return_ph_n.append(tf.placeholder(tf.float32, [None, None], name="returns" + str(i)))
 
         act_pdtype_n = [make_pdtype(act_space, args.env_type) for act_space in act_space_n]
-        act_ph_n = [tf.compat.v1.placeholder(tf.int32, [None, None], name="act_one_hot" + str(i)) for i in range(len(act_space_n))]
+        act_ph_n = [tf.placeholder(tf.int32, [None, None], name="act_one_hot" + str(i)) for i in range(len(act_space_n))]
 
         return obs_ph_n, h_ph_n, c_ph_n, memory_ph_n, act_ph_n, act_space_n, return_ph_n
 
@@ -68,9 +68,9 @@ class CommAgentTrainerVPG(MAgentTrainer):
         self.step_update_time = 10
 
         if self.args.optimizer == "RMSProp":
-            self.optimizer = tf.compat.v1.train.RMSPropOptimizer(learning_rate=self.args.actor_lr, decay=0.97, epsilon=1e-6)
+            self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.args.actor_lr, decay=0.97, epsilon=1e-6)
         else:
-            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.args.actor_lr)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.args.actor_lr)
 
         # Setup weight sharing for first initialization of adv/good policy
         if not(self.p_index == 0 or self.p_index == self.num_adv): self.reuse = True
@@ -125,7 +125,7 @@ class CommAgentTrainerVPG(MAgentTrainer):
         return p_input
 
     def _pMA_VPG_train(self, make_obs_ph_n, make_memory_ph_n, make_h_ph_n, make_c_ph_n, make_act_ph_n, action_space_n, make_return_ph_n, p_func, grad_norm_clipping=None, scope="agent", reuse=None):
-        with tf.compat.v1.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope(scope, reuse=reuse):
             # create distributions
             act_pdtype_n = [make_pdtype(act_space, self.args.env_type) for act_space in action_space_n]
 

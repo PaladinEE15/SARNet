@@ -32,7 +32,7 @@ def train():
         args.write_dropout = 1.0
         args.output_dropout = 1.0
     np.random.seed(args.random_seed)
-    tf.compat.v1.set_random_seed(args.random_seed)
+    tf.set_random_seed(args.random_seed)
 
     """" 
     --------------------------------------------------------------------------- 
@@ -85,7 +85,7 @@ def train():
     ---------------------------------------------------------------------------
     """
     # Initialize training parameters
-    saver = tf.compat.v1.train.Saver()
+    saver = tf.train.Saver()
 
     print('Starting iterations...')
     main_run_time = time.time()
@@ -140,7 +140,7 @@ def train():
                     print("Finished Benchmarking")
                     cpu_proc_envs.cancel()
                     close_gputhreads(gpu_threads_train)
-                    tf.compat.v1.InteractiveSession.close(sess)
+                    tf.InteractiveSession.close(sess)
                     time.sleep(60)
                     break
             train_act_op.reset_rew_info()
@@ -154,7 +154,7 @@ def train():
                     wutil.write_runtime(train_act_op.data_file, eps_completed, main_run_time)
                     cpu_proc_envs.cancel()
                     close_gputhreads(gpu_threads_train)
-                    tf.compat.v1.InteractiveSession.close(sess)
+                    tf.InteractiveSession.close(sess)
                     time.sleep(60)
                     break
 
@@ -165,7 +165,7 @@ def train():
                     wutil.write_runtime(train_act_op.data_file, eps_completed, main_run_time)
                     cpu_proc_envs.cancel()
                     close_gputhreads(gpu_threads_train)
-                    tf.compat.v1.InteractiveSession.close(sess)
+                    tf.InteractiveSession.close(sess)
                     time.sleep(60)
 
 if __name__ == '__main__':

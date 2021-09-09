@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-import tensorflow_addons.layers as layers
+import tf_slim.layers as layers
 
 import sarnet_td3.common.ops as ops
 
@@ -21,11 +21,11 @@ def _gru(args, reuse, maac=False):
     # return tf.contrib.cudnn_rnn.CudnnCompatibleGRUCell(num_units=args.critic_units)
     # return tf.contrib.cudnn_rnn.CudnnGRU(num_layers=1, num_units=args.gru_units)
     if not maac:
-        gru_cell = tf.contrib.rnn.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
-        proj = tf.contrib.rnn.InputProjectionWrapper(gru_cell, args.critic_units, reuse=reuse, activation=tf.nn.relu)
-        proj = tf.contrib.rnn.OutputProjectionWrapper(proj, 1, reuse=reuse)
+        gru_cell = tf.nn.rnn_cell.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
+        proj = tf.nn.rnn_cell.InputProjectionWrapper(gru_cell, args.critic_units, reuse=reuse, activation=tf.nn.relu)
+        proj = tf.nn.rnn_cell.OutputProjectionWrapper(proj, 1, reuse=reuse)
     else:
-        gru_cell = tf.contrib.rnn.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
+        gru_cell = tf.nn.rnn_cell.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
         proj = gru_cell
     return proj
 
@@ -39,7 +39,7 @@ Obs dim - [batch, time, obs_dim]
 
 def rnn_model(input, num_agents, args, scope, reuse=False, p_index=None):
     # input = [obs, act], state=GRU else None
-    with tf.compat.v1.variable_scope(scope, reuse=reuse):
+    with tf.variable_scope(scope, reuse=reuse):
         x_n = [input[i] for i in range(int(2 * num_agents))]
         state = input[int(2 * num_agents)]
         out = tf.concat(x_n, axis=-1)  # Concatenate the action/obs space for rnn encode
@@ -59,7 +59,7 @@ def rnn_model(input, num_agents, args, scope, reuse=False, p_index=None):
 
 # Computes n-head attention for critic - MAAC
 def maac_attn_nhead(x, p_index, num_agents, args, scope, reuse=None):
-    with tf.compat.v1.variable_scope(scope, reuse=reuse):
+    with tf.variable_scope(scope, reuse=reuse):
         message_out = []
         for i in range(args.nheads):
             key_out = []
@@ -68,12 +68,12 @@ def maac_attn_nhead(x, p_index, num_agents, args, scope, reuse=None):
                 # print(" Agent" + str(a))
                 if a is p_index:
                     query_out = layers.fully_connected(x[a], num_outputs=args.query_units, activation_fn=None,
-                                                        scope="query_encoder" + str(i) + str(a), reuse=tf.compat.v1.AUTO_REUSE)
+                                                        scope="query_encoder" + str(i) + str(a), reuse=tf.AUTO_REUSE)
                 else:
                     key_out.append(layers.fully_connected(x[a], num_outputs=args.key_units, activation_fn=None,
-                                                          scope="key_encoder" + str(i) + str(a), reuse=tf.compat.v1.AUTO_REUSE))
+                                                          scope="key_encoder" + str(i) + str(a), reuse=tf.AUTO_REUSE))
                     value_out.append(layers.fully_connected(x[a], num_outputs=args.value_units, activation_fn=None,
-                                                            scope="value_encoder" + str(i) + str(a), reuse=tf.compat.v1.AUTO_REUSE))
+                                                            scope="value_encoder" + str(i) + str(a), reuse=tf.AUTO_REUSE))
 
             query = tf.expand_dims(query_out, axis=1)
             key_out = tf.stack(key_out, axis=-2)
@@ -90,7 +90,7 @@ def maac_attn_nhead(x, p_index, num_agents, args, scope, reuse=None):
 
 
 def maac_rnn_model(x_n, n, args, scope, reuse=False, p_index=None):
-    with tf.compat.v1.variable_scope(scope, reuse=reuse):
+    with tf.variable_scope(scope, reuse=reuse):
         # Gather inputs fed for the graph
         # Required as a list of [#agents, [time, batch, dim]]
         obs_n_in = [x_n[i] for i in range(n)]
@@ -117,17 +117,17 @@ def maac_rnn_model(x_n, n, args, scope, reuse=False, p_index=None):
                 enc_in_i = tf.concat([obs_n_in[i][stp], act_n_in[i][stp]], axis=-1)
                 obs_enc_out_n.append(layers.fully_connected(enc_in_i, num_outputs=args.gru_units,
                                                           activation_fn=tf.nn.relu, scope="maac_pre_enc" + str(i),
-                                                          reuse=tf.compat.v1.AUTO_REUSE))
+                                                          reuse=tf.AUTO_REUSE))
 
             # Calculate attention from n-heads
-            critic_message = maac_attn_nhead(obs_enc_out_n, p_index, n, args, scope="maac_attn", reuse=tf.compat.v1.AUTO_REUSE)
+            critic_message = maac_attn_nhead(obs_enc_out_n, p_index, n, args, scope="maac_attn", reuse=tf.AUTO_REUSE)
 
             obs_enc_in_i = tf.concat([obs_enc_out_n[p_index], critic_message], axis=-1)
-            enc = _gru(args, reuse=tf.compat.v1.AUTO_REUSE, maac=True)
+            enc = _gru(args, reuse=tf.AUTO_REUSE, maac=True)
             _enc_out_i, qh_i_t = enc(obs_enc_in_i, qh_i_t)
 
             # project to Q-value
-            q = layers.fully_connected(_enc_out_i, num_outputs=1, activation_fn=None, scope="Qproj", reuse=tf.compat.v1.AUTO_REUSE)
+            q = layers.fully_connected(_enc_out_i, num_outputs=1, activation_fn=None, scope="Qproj", reuse=tf.AUTO_REUSE)
             # print(stp)
             outputs_ = outputs_.write(stp, q)
 

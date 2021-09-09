@@ -15,10 +15,10 @@ def build_summaries(num_agents, args):
             tf.summary.scalar("TargetQNxt" + str(i), exp_performance[5 + int(i * 5)])
     else:
         exp_performance = [tf.Variable(0.) for _ in range(1)]
-        tf.compat.v1.summary.scalar("Reward", exp_performance[0])
+        tf.summary.scalar("Reward", exp_performance[0])
 
     summary_vars = exp_performance
-    summary_ops = tf.compat.v1.summary.merge_all()
+    summary_ops = tf.summary.merge_all()
     return summary_ops, summary_vars
 
 
@@ -142,7 +142,7 @@ def parse_args():
     # Evaluation
     parser.add_argument("--restore", action="store_true", default=False)
     parser.add_argument("--display", action="store_true", default=False)
-    parser.add_argument("--benchmark", action="store_true", default=True)
+    parser.add_argument("--benchmark", action="store_true", default=False)
     parser.add_argument("--benchmark-iters", type=int, default=80000, help="number of iterations run for benchmarking")
     parser.add_argument("--benchmark-dir", type=str, default="bench-std", help="directory where benchmark data is saved")
     parser.add_argument("--plots-dir", type=str, default="learning_curves", help="directory where plot data is saved")
