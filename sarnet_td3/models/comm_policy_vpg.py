@@ -1,6 +1,6 @@
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-import tensorflow.contrib.layers as layers
+import tensorflow_addons.layers as layers
 import numpy as np
 
 from sarnet_td3.models.SARNet_comm import RRLCell
