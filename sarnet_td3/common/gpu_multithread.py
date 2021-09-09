@@ -1,7 +1,8 @@
 import threading, queue, time, os, pickle
 # from queue import Queue
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 import sarnet_td3.common.tf_util as U
 from tensorflow.python.keras.backend import set_session
 lock = threading.Lock()

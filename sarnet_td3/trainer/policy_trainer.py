@@ -1,5 +1,6 @@
 import sarnet_td3.common.tf_util as U
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 from sarnet_td3.models.critic_model import mlp_model, rnn_model, maac_rnn_model
 from sarnet_td3.models.comm_policy import CommActorNetwork
