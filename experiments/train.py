@@ -5,8 +5,7 @@ import time
 import warnings
 
 import numpy as np
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 import ic3net_envs
 
 import sarnet_td3.common.tf_util as U

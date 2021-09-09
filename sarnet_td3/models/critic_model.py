@@ -1,6 +1,5 @@
 import numpy as np
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
 import sarnet_td3.common.ops as ops

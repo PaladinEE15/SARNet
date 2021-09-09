@@ -1,8 +1,7 @@
 import queue
 import time, os, pickle
 import numpy as np
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 import sarnet_td3.common.tf_util as U
 from sarnet_td3.common.np_utils import create_dir
 from experiments.config_args import build_summaries

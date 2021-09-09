@@ -1,5 +1,4 @@
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 
 
 class MiGRUCell(tf.compat.v1.nn.rnn_cell.RNNCell):

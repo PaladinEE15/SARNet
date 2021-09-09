@@ -1,6 +1,5 @@
 import numpy as np
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+import tensorflow as tf
 from multiagent.multi_discrete import MultiDiscrete
 from tensorflow.python.ops import math_ops
 
