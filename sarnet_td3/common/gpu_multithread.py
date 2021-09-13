@@ -31,7 +31,7 @@ class MultiTrainTD3(threading.Thread):
         self.final_ep_end_rewards = []
         self.final_ep_ag_rewards = []  # agent rewards for training curve
         self.save_rate = self.args.max_episode_len * 100
-        self.save_n_ep = self.num_env * 10
+        self.save_n_ep = self.num_env * 100
         self.print_step = -int(self.save_n_ep / self.num_env)
 
         self.q_h_init = np.zeros(shape=(self.num_env, self.args.critic_units))
@@ -450,19 +450,20 @@ class MultiTrainVPG(threading.Thread):
         with lock:
             # train_step = t_step * num_env
             train_step, num_episodes, time_taken, exp_name, exp_itr, data_file, saver = data
-            # Policy File
-            save_dir = './exp_data/' + exp_name + '/' + exp_itr + '/' + self.args.save_dir + str(train_step)
-            U.save_state(save_dir, self.sess, saver=saver)
-            episode_b_success = []
-            for j in range(self.num_env):
-                episode_b_success.append(np.mean(self.ep_success[j][self.print_step:]))
-            episode_b_success = np.mean(np.array(episode_b_success)) / self.args.max_episode_len
-            print("steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
-                train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
-            with open(data_file, "a+") as f:
-                f.write("\n" + "steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
+            if num_episodes % 20000 == 0:
+                # Policy File
+                save_dir = './exp_data/' + exp_name + '/' + exp_itr + '/' + self.args.save_dir + str(train_step)
+                U.save_state(save_dir, self.sess, saver=saver)
+                episode_b_success = []
+                for j in range(self.num_env):
+                    episode_b_success.append(np.mean(self.ep_success[j][self.print_step:]))
+                episode_b_success = np.mean(np.array(episode_b_success)) / self.args.max_episode_len
+                print("steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
                     train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
-                self.final_ep_rewards.append(episode_b_success)
+                with open(data_file, "a+") as f:
+                    f.write("\n" + "steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
+                        train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
+                    self.final_ep_rewards.append(episode_b_success)
 
     def plot_rewards(self, data):
         with lock:

@@ -19,8 +19,6 @@ class CommActorNetworkTD3():
         self.attn_scale = np.sqrt(self.args.query_units)
 
     def _gru(self, reuse):
-        # return tf.contrib.cudnn_rnn.CudnnCompatibleGRUCell(num_units=self.args.gru_units)
-        # return tf.contrib.cudnn_rnn.CudnnGRU(num_layers=1, num_units=args.gru_units)
         return tf.nn.rnn_cell.GRUCell(num_units=self.args.gru_units, reuse=reuse, name="rnn_encoder")
 
     def _lstm(self, reuse):
@@ -112,9 +110,6 @@ class CommActorNetworkTD3():
             att_smry = tf.nn.softmax(att_smry / self.attn_scale)   # (batch_size, #Agents)
             # Now do interaction with the value (batch_size, #Agents) * (batch_size, #Agents, value_dim)
             message = tf.einsum('bn,bnd->bd', att_smry, value_n)
-            # _obs_act_in = tf.contrib.layers.batch_norm(message, decay=self.args.bnDecay, center=self.args.bnCenter,
-            #                                            scale=self.args.bnScale, is_training=self.is_train,
-            #                                            updates_collections=None, scope="batch_norm_obs", reuse=reuse)
             return message, att_smry
 
     def commnet_com(self, x_n, n, scope, reuse):

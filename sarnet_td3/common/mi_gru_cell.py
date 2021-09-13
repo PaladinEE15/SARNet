@@ -1,6 +1,6 @@
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-
+import tf_slim.layers as layers
 
 class MiGRUCell(tf.nn.rnn_cell.RNNCell):
     def __init__(self, num_units, input_size=None, activation=tf.tanh, reuse=None):
@@ -19,7 +19,7 @@ class MiGRUCell(tf.nn.rnn_cell.RNNCell):
     def mulWeights(self, inp, inDim, outDim, name=""):
         with tf.variable_scope("weights" + name):
             W = tf.get_variable("weights", shape=(inDim, outDim),
-                                initializer=tf.contrib.layers.xavier_initializer())
+                                initializer=tf.keras.initializers.glorot_normal)
 
         output = tf.matmul(inp, W)
         return output

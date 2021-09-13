@@ -3,6 +3,7 @@ from __future__ import division
 
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
+import tf_slim.layers as layers
 
 from experiments.config_args import parse_args
 from sarnet_td3.common.config_ops import config
@@ -24,7 +25,7 @@ Uses random_normal initialization if 1d, otherwise uses xavier.
 
 def getWeight(shape, name=""):
     with tf.variable_scope("weights"):
-        initializer = tf.contrib.layers.xavier_initializer()
+        initializer = tf.keras.initializers.glorot_normal
         # if len(shape) == 1: # good?
         #     initializer = tf.random_normal_initializer()
         W = tf.get_variable("weight" + name, shape=shape, initializer=initializer)
@@ -38,7 +39,7 @@ def getWeight(shape, name=""):
 #
 # def getKernel(shape, name=""):
 #     with tf.variable_scope("kernels"):
-#         initializer = tf.contrib.layers.xavier_initializer()
+#         initializer = layers.xavier_initializer()
 #         W = tf.get_variable("kernel" + name, shape=shape, initializer=initializer)
 #     return W
 #
@@ -356,7 +357,7 @@ def linear(inp, inDim, outDim, dropout=1.0,
         b = getBias((outDim,) if outDim > 1 else ()) + bias
 
         if batchNorm is not None:
-            inp = tf.contrib.layers.batch_norm(inp, decay=batchNorm["decay"],
+            inp = layers.batch_norm(inp, decay=batchNorm["decay"],
                                                center=True, scale=True, is_training=batchNorm["train"],
                                                updates_collections=None)
             # tf.layers.batch_normalization, axis -1 ?
@@ -447,7 +448,7 @@ def linear(inp, inDim, outDim, dropout=1.0,
 #         b = getBias((outDim,))
 #
 #         if batchNorm is not None:
-#             inp = tf.contrib.layers.batch_norm(inp, decay=batchNorm["decay"], center=batchNorm["center"],
+#             inp = layers.batch_norm(inp, decay=batchNorm["decay"], center=batchNorm["center"],
 #                                                scale=batchNorm["scale"], is_training=batchNorm["train"],
 #                                                updates_collections=None)
 #

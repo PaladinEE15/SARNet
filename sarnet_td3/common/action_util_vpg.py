@@ -280,6 +280,7 @@ class ActionOPVPG(object):
         if self.buffer_size * self.args.len_traj_update * self.num_env < self.args.batch_size:
             return
         else:
+            print('update loss!')
             # print(np.shape(np.asarray(self.value_n_buffer)))
             # print(np.shape(self.value_n_buffer[-1]))
             traj_data = self.return_buffer()
