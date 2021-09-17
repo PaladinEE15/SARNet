@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument("--timeout", type=int, default=1, help="Thread Timeout")
     parser.add_argument("--update-lag", type=int, default=10000, help="number of steps to complete before starting update")
     parser.add_argument("--num-updates", type=int, default=1, help="Updates per 100 episodes")
-    parser.add_argument("--batch-size", type=int, default=200000, help="batch size per environment instance to optimize at the same time")
+    parser.add_argument("--batch-size", type=int, default=256, help="batch size per environment instance to optimize at the same time")
     parser.add_argument("--zero-state-update", action="store_true", default=False, help="Use zero state for updates")
     parser.add_argument("--len-traj-update", type=int, default=10, help="Length of trajectory to optimize")
 
