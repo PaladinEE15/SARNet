@@ -33,7 +33,7 @@ class Scenario(BaseScenario):
             landmark.movable = False
             landmark.size = 0.05 / (num_landmarks / 3)
 
-        self.occ_land_dist = world.agents[0].size + world.landmarks[0].size
+        self.occ_land_dist = world.agents[0].size - world.landmarks[0].size
         self.reset_world(world)
         return world
 

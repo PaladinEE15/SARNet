@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument("--env-type", type=str, default="mpe", choices=["mpe", "ic3net"], help="name of the environment script")
     parser.add_argument("--scenario", type=str, default="simple_spread_10", help="name of the scenario script")
     parser.add_argument("--max-episode-len", type=int, default=100, help="maximum episode length")
-    parser.add_argument("--num-episodes", type=int, default=30000, help="number of episodes")
+    parser.add_argument("--num-episodes", type=int, default=24000, help="number of episodes")
     parser.add_argument("--num-total-frames", type=int, default=5e6, help="number of episodes")
     parser.add_argument("--num-adversaries", type=int, default=10, help="number of adversaries/agents")
     parser.add_argument("--policy-grad", type=str, default="maddpg", choices=["maddpg", "reinforce"], help="policy for good agents")
@@ -131,9 +131,9 @@ def parse_args():
     parser.add_argument("---feedMemObsAction", action="store_true", default=True, help="Feed memory and observation for action projection")
 
     # Checkpointing
-    parser.add_argument("--exp-name", type=str, default="SAR-CN10", help="name of the experiment")
+    parser.add_argument("--exp-name", type=str, default="SAR-TJ6-AddRate", help="name of the experiment")
     parser.add_argument("--exp-itr", type=str, default="0", help="name of the experiment")
-    parser.add_argument("--policy-file", type=str, default="5000000", help="name of policy itr to use for benchmark")
+    parser.add_argument("--policy-file", type=str, default="642600", help="name of policy itr to use for benchmark")
     parser.add_argument("--save-dir", type=str, default="/policy/", help="directory in which training state and model should be saved")
     parser.add_argument("--save-rate", type=int, default=10000, help="save model once every time this many episodes are completed")
     parser.add_argument("--load-dir", type=str, default="", help="directory in which training state and model are loaded")
