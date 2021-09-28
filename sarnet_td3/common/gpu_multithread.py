@@ -6,6 +6,19 @@ tf.disable_v2_behavior()
 import sarnet_td3.common.tf_util as U
 from tensorflow.python.keras.backend import set_session
 lock = threading.Lock()
+import experiments.benchmark as bc
+
+def show_test_info(main_info, args):
+    if args.scenario[0:10] == 'simple_tag':
+        bc.simple_tag(args, main_info)
+    elif args.scenario[0:13] == 'simple_spread':
+        bc.simple_spread(args, main_info)
+    elif args.scenario == 'traffic-junction':
+        bc.traffic_junction(args, main_info)
+    elif args.scenario == 'predator-prey':
+        m = 0 #not implemented now
+    else:
+        print('unknown environment!!!!!')
 
 
 class MultiTrainTD3(threading.Thread):
@@ -206,8 +219,14 @@ class MultiTrainTD3(threading.Thread):
             train_step, num_episodes, time_taken, exp_name, exp_itr, data_file, saver = data
             # Policy File
             if num_episodes % (self.save_n_ep) == 0:
+                print(' ')
                 save_dir = './exp_data/' + exp_name + '/' + exp_itr + '/' + self.args.save_dir + str(train_step)
                 U.save_state(save_dir, self.sess, saver=saver)
+                showed_info = [[[] for i in range(self.num_agents)] for _ in range(self.num_env)]
+                for j in range(self.num_env):
+                    for i in range(self.num_agents):
+                        showed_info[j][i] += self.agent_info[j][i][-self.args.max_episode_len:]
+                show_test_info(showed_info,self.args)
                 # episode_rewards, agent_rewards, final_ep_rewards, final_ep_ag_rewards = rewards
                 if self.args.env_type == "mpe":
                     # print statement depends on whether or not there are adversaries
@@ -230,6 +249,7 @@ class MultiTrainTD3(threading.Thread):
                         with open(data_file, "a+") as f:
                             f.write("\n" + "steps: {}, episodes: {}, mean episode reward: {}, mean end rewards: {}, time: {}".format(
                             train_step, num_episodes, episode_b_rewards, ep_end_b_rewards, round(time.time() - self.time_prev, 3)) + "\n")
+
                     else:
                         episode_b_rewards = []
                         ep_end_b_rewards = []
@@ -244,7 +264,6 @@ class MultiTrainTD3(threading.Thread):
                             for j in range(self.num_env):
                                 temp_ag_reward.append(np.mean(self.agent_rewards[j][i][self.print_step:]))
                             ep_ag_b_rewards.append(np.mean(np.array(temp_ag_reward)))
-
                         print("steps: {}, episodes: {}, mean episode reward: {}, mean end rewards: {}, agent episode reward: {}, time: {}".format(
                             train_step, num_episodes, episode_b_rewards, ep_end_b_rewards, [rew for rew in ep_ag_b_rewards],
                             round(time.time() - self.time_prev, 3)) + "\n")
@@ -453,16 +472,18 @@ class MultiTrainVPG(threading.Thread):
             # Policy File
             save_dir = './exp_data/' + exp_name + '/' + exp_itr + '/' + self.args.save_dir + str(train_step)
             U.save_state(save_dir, self.sess, saver=saver)
-            episode_b_success = []
-            for j in range(self.num_env):
-                episode_b_success.append(np.mean(self.ep_success[j][self.print_step:]))
-            episode_b_success = np.mean(np.array(episode_b_success)) / self.args.max_episode_len
-            print("steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
-                train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
-            with open(data_file, "a+") as f:
-                f.write("\n" + "steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
+            if num_episodes %(100*self.num_env) == 0:
+                episode_b_success = []
+                for j in range(self.num_env):
+                    episode_b_success.append(np.mean(self.ep_success[j][self.print_step:]))
+                episode_b_success = np.mean(np.array(episode_b_success)) / self.args.max_episode_len
+                print(' ')
+                print("steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
                     train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
-                self.final_ep_rewards.append(episode_b_success)
+                with open(data_file, "a+") as f:
+                    f.write("\n" + "steps: {}, episodes: {}, mean episode success: {}, time: {}".format(
+                        train_step, num_episodes, episode_b_success, round(time.time() - self.time_prev, 3)) + "\n")
+                    self.final_ep_rewards.append(episode_b_success)
 
     def plot_rewards(self, data):
         with lock:

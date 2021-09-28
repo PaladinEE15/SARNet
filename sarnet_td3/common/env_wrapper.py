@@ -79,7 +79,7 @@ class GymWrapper(object):
         return obs, r, done, info
 
     def seed(self, the_seed):
-        self.env.seed()
+        self.env.seed(the_seed)
 
     def reward_terminal(self):
         if hasattr(self.env, 'reward_terminal'):
@@ -108,5 +108,3 @@ class GymWrapper(object):
             return self.env.stat
         else:
             return dict()
-    def seed(self, x):
-        return

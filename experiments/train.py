@@ -3,7 +3,6 @@ import os
 import pickle
 import time
 import warnings
-
 import numpy as np
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
@@ -95,6 +94,7 @@ def train():
     # CPU: Reset all environments and initialize all hidden states
     train_act_op.reset_states()
     start_time = time.time()
+    outer_episode = 0
     while True:
         """ 
         Perform following steps: 
@@ -132,6 +132,9 @@ def train():
                 train_act_op.get_loss()
 
         if train_act_op.terminal:
+            outer_episode +=1
+            if outer_episode%10 == 0:
+                print('one episode complete! ',end='')
             # eps_completed = train_act_op.train_step * num_env / args.max_episode_len
             if not (args.benchmark or args.display):
                 train_act_op.save_model_rew_disk(saver, time.time() - start_time)
@@ -170,4 +173,5 @@ def train():
                     time.sleep(60)
 
 if __name__ == '__main__':
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
     train()

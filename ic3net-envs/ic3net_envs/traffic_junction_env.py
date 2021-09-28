@@ -297,8 +297,8 @@ class TrafficJunctionEnv(gym.Env):
     def exit_render(self):
         curses.endwin()
 
-    def seed(self):
-        return
+    def seed(self,seed):
+        np.random.seed(seed)
 
     def _set_grid(self):
         self.grid = np.full(self.dims[0] * self.dims[1], self.OUTSIDE_CLASS, dtype=int).reshape(self.dims)

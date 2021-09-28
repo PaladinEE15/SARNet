@@ -167,8 +167,8 @@ class PredatorPreyEnv(gym.Env):
         self.obs = self._get_obs()
         return self.obs
 
-    def seed(self):
-        return
+    def seed(self,seed):
+        np.random.seed(seed)
 
     def _get_cordinates(self):
         idx = np.random.choice(np.prod(self.dims),(self.npredator + self.nprey), replace=False)

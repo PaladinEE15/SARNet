@@ -22,8 +22,7 @@ def _gru(args, reuse, maac=False):
     # return tf.contrib.cudnn_rnn.CudnnGRU(num_layers=1, num_units=args.gru_units)
     if not maac:
         gru_cell = tf.nn.rnn_cell.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
-        proj = tf.nn.rnn_cell.InputProjectionWrapper(gru_cell, args.critic_units, reuse=reuse, activation=tf.nn.relu)
-        proj = tf.nn.rnn_cell.OutputProjectionWrapper(proj, 1, reuse=reuse)
+        proj = gru_cell
     else:
         gru_cell = tf.nn.rnn_cell.GRUCell(num_units=args.critic_units, reuse=reuse, name="critic_encoder")
         proj = gru_cell
@@ -48,6 +47,8 @@ def rnn_model(input, num_agents, args, scope, reuse=False, p_index=None):
         gru = _gru(args, reuse=reuse)
         # out = tf.expand_dims(out, axis=-2) # Changed from -2 to 0, to account for CudnnRNN cells (time-major only)
         out, state = tf.nn.dynamic_rnn(gru, out, initial_state=state, time_major=True, scope="cmlp_rnn")
+        out = layers.fully_connected(out, num_outputs=args.critic_units, activation_fn=tf.nn.relu, scope="cmlp_rnn1", reuse=reuse)
+        out = layers.fully_connected(out, num_outputs=1, scope="cmlp_rnn2", reuse=reuse)
         # timesteps = tf.shape(state)[0]
         # state_list_time = tf.map_fn(fn=lambda k: state[k], elems=tf.range(timesteps), dtype=tf.float32)
         #
